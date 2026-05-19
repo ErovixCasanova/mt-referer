@@ -3,16 +3,40 @@ import { parse } from 'node:url';
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 
 const PORT = process.env.PORT || 3000;
+// Railway sets SECRET_KEY - make sure we read it correctly
 const SECRET_KEY = process.env.SECRET_KEY;
+
+console.log('🔍 Debug: Checking environment...');
+console.log(`PORT: ${PORT}`);
+console.log(`SECRET_KEY exists: ${SECRET_KEY ? 'YES' : 'NO'}`);
+console.log(`SECRET_KEY length: ${SECRET_KEY ? SECRET_KEY.length : 0}`);
 
 if (!SECRET_KEY) {
   console.error('❌ SECRET_KEY environment variable is required!');
+  console.error('💡 Generate one with: node -e "console.log(require(\"crypto\").randomBytes(32).toString(\"hex\"))"');
   process.exit(1);
 }
 
-const key = Buffer.from(SECRET_KEY, 'hex');
-if (key.length !== 32) {
-  console.error('❌ SECRET_KEY must be 32 bytes hex (64 characters)');
+// Check if SECRET_KEY is valid hex (should be 64 chars)
+const isHex = /^[0-9a-fA-F]+$/.test(SECRET_KEY);
+console.log(`SECRET_KEY is valid hex: ${isHex ? 'YES' : 'NO'}`);
+
+if (!isHex) {
+  console.error('❌ SECRET_KEY must contain only hex characters (0-9, a-f)');
+  console.error(`Current value starts with: ${SECRET_KEY.substring(0, 10)}...`);
+  process.exit(1);
+}
+
+let key;
+try {
+  key = Buffer.from(SECRET_KEY, 'hex');
+  if (key.length !== 32) {
+    console.error(`❌ SECRET_KEY must be 32 bytes (64 hex chars). Got ${key.length} bytes`);
+    process.exit(1);
+  }
+  console.log('✅ SECRET_KEY is valid!');
+} catch (err) {
+  console.error('❌ Failed to create buffer from SECRET_KEY:', err.message);
   process.exit(1);
 }
 
@@ -375,7 +399,8 @@ const homePage = `<!DOCTYPE html>
 
 const server = createServer(async (req, res) => {
   const { pathname, query } = parse(req.url, true);
-  const baseUrl = `https://${req.headers.host}`;
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const baseUrl = `${protocol}://${req.headers.host}`;
   
   if (pathname === '/' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
