@@ -1,0 +1,13 @@
+{
+  "name": "mt-referrer",
+  "version": "2.0.0",
+  "description": "Secure URL referral service with AES-256-GCM encryption",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
